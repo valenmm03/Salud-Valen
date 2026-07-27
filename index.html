@@ -1777,23 +1777,30 @@ function initHome() {
   const goalStr = valida ? `${MESES[goalDate.getMonth()]}-${goalDate.getFullYear()}` : null;
 
   // — Composición —
-  document.getElementById('hc-comp-sub').textContent=
-    `${DATA.length} mediciones · ${first.fecha} – ${last.fecha}${EQUIPO?' · '+EQUIPO:''}`;
-  const gRec = regresion('grasa', 6), mRec = regresion('smm', 6);
-  const grasaFuera = +(first.grasa - last.grasa).toFixed(1);
-  const musculoD   = +(last.smm - first.smm).toFixed(1);
-  const pesoFuera  = +(first.peso - last.peso).toFixed(1);
-  const calidad    = pesoFuera > 0 ? Math.round(grasaFuera/pesoFuera*100) : null;
-  const ritmoG     = Math.abs(gRec.valida ? gRec.ratePerWeek : 0);
+  // Tolerante con app vacía: sin mediciones, first/last son undefined.
+  if(!first || !last){
+    document.getElementById('hc-comp-sub').textContent = 'Sin mediciones cargadas';
+    document.getElementById('hc-comp-metrics').innerHTML =
+      '<div class="hc-metric"><span class="hc-dot" style="background:#d1d5db"></span>Aún no has registrado ninguna medición de composición</div>';
+  } else {
+    document.getElementById('hc-comp-sub').textContent=
+      `${DATA.length} mediciones · ${first.fecha} – ${last.fecha}${EQUIPO?' · '+EQUIPO:''}`;
+    const gRec = regresion('grasa', 6), mRec = regresion('smm', 6);
+    const grasaFuera = +(first.grasa - last.grasa).toFixed(1);
+    const musculoD   = +(last.smm - first.smm).toFixed(1);
+    const pesoFuera  = +(first.peso - last.peso).toFixed(1);
+    const calidad    = pesoFuera > 0 ? Math.round(grasaFuera/pesoFuera*100) : null;
+    const ritmoG     = Math.abs(gRec.valida ? gRec.ratePerWeek : 0);
 
-  document.getElementById('hc-comp-metrics').innerHTML=`
-    <div class="hc-metric"><span class="hc-dot" style="background:#e74c3c"></span>
-      Grasa: <strong>${last.grasa} kg</strong> · <strong style="color:#2d6a4f">−${grasaFuera} kg</strong> desde el inicio</div>
-    <div class="hc-metric"><span class="hc-dot" style="background:#2980b9"></span>
-      Músculo: <strong>${last.smm} kg</strong> · <strong style="color:${musculoD>=0?'#15803d':'#b45309'}">${musculoD>=0?'+':''}${musculoD} kg</strong></div>
-    <div class="hc-metric"><span class="hc-dot" style="background:#2d6a4f"></span>
-      ${calidad!=null ? `<strong>${calidad}%</strong> de lo perdido fue grasa` : `Peso: ${last.peso} kg`}${
-        ritmoG>0.01 ? ` · ${ritmoG.toFixed(2)} kg grasa/sem` : ''}</div>`;
+    document.getElementById('hc-comp-metrics').innerHTML=`
+      <div class="hc-metric"><span class="hc-dot" style="background:#e74c3c"></span>
+        Grasa: <strong>${last.grasa} kg</strong> · <strong style="color:#2d6a4f">−${grasaFuera} kg</strong> desde el inicio</div>
+      <div class="hc-metric"><span class="hc-dot" style="background:#2980b9"></span>
+        Músculo: <strong>${last.smm} kg</strong> · <strong style="color:${musculoD>=0?'#15803d':'#b45309'}">${musculoD>=0?'+':''}${musculoD} kg</strong></div>
+      <div class="hc-metric"><span class="hc-dot" style="background:#2d6a4f"></span>
+        ${calidad!=null ? `<strong>${calidad}%</strong> de lo perdido fue grasa` : `Peso: ${last.peso} kg`}${
+          ritmoG>0.01 ? ` · ${ritmoG.toFixed(2)} kg grasa/sem` : ''}</div>`;
+  }
 
   // — Laboratorio —
   // Tolerante: si un marcador no está en la hoja, se omite en vez de romper.
@@ -2033,6 +2040,11 @@ function initRecomposicion(){
 
 function renderComposicionKPIs() {
   const first=DATA[0], last=DATA[DATA.length-1];
+  if(!first || !last){
+    document.getElementById('kpis').innerHTML =
+      '<div class="kpi" style="grid-column:1/-1;text-align:center;color:#64748b;padding:16px">Aún no hay mediciones de composición. Agrega la primera desde el botón de nueva medición.</div>';
+    return;
+  }
   function kpiCard(label,val,prev,unit,bg,clr,meta){
     const d=val-prev, sign=d>0?'+':'';
     let goal='';
@@ -2084,6 +2096,7 @@ function renderComposicionTables() {
 }
 
 function initResumen() {
+  if(!DATA.length) return;
   const labels=DATA.map(d=>d.fecha);
   mkLine('cPeso',[ds('Peso kg',DATA.map(d=>d.peso),G,{fill:true})]);
   mkLine('cGrasaSMM',[ds('Grasa kg',DATA.map(d=>d.grasa),R),ds('SMM músculo kg',DATA.map(d=>d.smm),B)]);
@@ -2110,6 +2123,7 @@ function initResumen() {
 
 function initComposicion() {
   renderProgress();
+  if(!DATA.length) return;
   const n=DATA.length;
   const sl=[...DATA.map(d=>d.fecha),'🎯 Objetivo'];
   const ga=[...DATA.map(d=>+(d.peso-d.ecf-d.icf-d.prot-d.min).toFixed(1)),OBJ.grasa];
